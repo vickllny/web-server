@@ -5,9 +5,9 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 require('dotenv').config();
 
-const session = require('express-session');
 
 const passport = require('./utils/passport')
+const { expressjwt: jwt } = require('express-jwt')
 
 
 var indexRouter = require('./routes/index');
@@ -27,9 +27,30 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use(session({ secret: process.env.SECRET_KEY, resave: false, saveUninitialized: true }));
 app.use(passport.initialize());
-app.use(passport.session());
+
+// jwt
+app.use(
+  jwt({
+    secret: process.env.JWT_SECRET_KEY, 
+    algorithms: ["HS256"],
+    getToken: (req) => {
+      if(req.headers.authorization){
+        return req.headers.authorization;
+      }
+      if(req.cookies['authorization']){
+        return req.cookies['authorization'];
+      }
+      return null;
+    },
+    onExpired: async (req, err) => {
+      if (new Date() - err.inner.expiredAt < 5000) { return;}
+      throw err;
+    }
+  }).unless({
+    path: ['/login', '/auth/**']
+  })
+);
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
@@ -43,6 +64,10 @@ app.use(function(req, res, next) {
 
 // error handler
 app.use(function(err, req, res, next) {
+  if (err.name === "UnauthorizedError") {
+    res.status(401).send("invalid token...");
+    return;
+  }
   // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};

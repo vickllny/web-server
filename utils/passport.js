@@ -13,32 +13,34 @@ passport.use(new GitHubStrategy({
   async function(accessToken, refreshToken, profile, done) {
     const { provider } = profile;
     // 在这里，你可以根据 profile 信息查找或创建用户
-    const users = await Authentication.findAll({
+    const authentication = await Authentication.findAll({
         where: {
             identifier: profile.id,
             provider
         }
     })
     let user;
-    if(users.size() == 0){
+    if(authentication.length == 0){
         //新增用户和授权记录
         user = await User.create({
             name: profile.username,
             email: profile.emails[0].value
         })
-        const auth = await Authentication.create({
+        await Authentication.create({
             userId: user.id,
-            provider
+            provider,
+            identifier: profile.id
         })
     }else {
-        user = users[0];
+        const auth = authentication[0];
+        user = await User.findByPk(auth.userId)
     }
     return done(null, user);
   }
 ));
 
 passport.serializeUser(function(user, done) {
-  done(null, user.id);
+  done(null, user);
 });
 
 passport.deserializeUser(function(obj, done) {

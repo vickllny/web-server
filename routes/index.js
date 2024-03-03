@@ -1,10 +1,13 @@
 var express = require('express');
 var router = express.Router();
+const Jwt = require('../utils/jwt');
+
+
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
   if (req.isAuthenticated()) {
-    res.send(`Hello, ${req.user.displayName}! <a href="/logout">Logout</a>`);
+    res.send(`Hello, ${req.user.name}! <a href="/logout">Logout</a>`);
   } else {
     res.redirect('/login');
   }
