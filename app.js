@@ -46,9 +46,10 @@ app.use(
     onExpired: async (req, err) => {
       if (new Date() - err.inner.expiredAt < 5000) { return;}
       throw err;
-    }
+    },
+    requestProperty: "user"
   }).unless({
-    path: ['/login', '/auth/**']
+    path: ['/login', /^\/auth/]
   })
 );
 
@@ -65,7 +66,8 @@ app.use(function(req, res, next) {
 // error handler
 app.use(function(err, req, res, next) {
   if (err.name === "UnauthorizedError") {
-    res.status(401).send("invalid token...");
+    console.log("invalid token...");
+    res.redirect('/login');
     return;
   }
   // set locals, only providing error in development
